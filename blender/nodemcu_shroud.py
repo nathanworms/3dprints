@@ -43,6 +43,11 @@ jumper_cutout_square_width = 3.0  # mm (Width for the larger square cutouts for 
 # List of pin names (from pin_map) that should get jumper access cutouts
 pins_for_jumper_access = ["VIN", "GND1", "D1", "D2", "D7", "3V3_1"]
 
+# Chamfering for pin hole openings (helps with printability)
+enable_pin_hole_opening_chamfer = True # If True, adds a slight enlargement at the hole opening
+pin_hole_chamfer_additional_width_per_side = 0.3  # mm, how much wider the chamfer makes the hole on each side (e.g., 0.3mm means opening is 0.6mm wider in total)
+pin_hole_chamfer_depth = 0.5 # mm, how deep this enlarged section goes from the opening
+
 remove_middle_material = True  # If True, removes material between the two pin rows
 middle_channel_jumper_separation = 0.5 # mm, thickness of the wall to leave between the middle channel and the edge of a jumper hole.
 middle_material_cutout_length_offset = 0.0 # mm, additional length adjustment for the middle cutout.
@@ -186,6 +191,26 @@ for r_idx in range(2):  # Corresponds to row_y_offsets[0] and row_y_offsets[1]
         
         if shroud_obj: # Ensure shroud_obj was successfully created
             apply_boolean(shroud_obj, pin_cutter_obj)
+
+            # If enabled, create and apply a chamfer/enlargement at the hole opening
+            if enable_pin_hole_opening_chamfer and pin_hole_chamfer_additional_width_per_side > 0.001 and pin_hole_chamfer_depth > 0.001:
+                chamfer_cutter_name = f"Chamfer_R{r_idx}_P{p_idx}"
+                
+                base_hole_width = jumper_cutout_square_width if is_jumper_pin else standard_pin_hole_square_width
+                chamfer_cutter_width = base_hole_width + (2 * pin_hole_chamfer_additional_width_per_side)
+                
+                # Create the chamfer cutter (a shallow, wider cuboid at the hole opening Z=0)
+                bpy.ops.mesh.primitive_cube_add(
+                    size=1, # Unit cube
+                    location=(pin_center_xy[0], pin_center_xy[1], pin_hole_chamfer_depth / 2.0), # Base at Z=0
+                    enter_editmode=False,
+                    align='WORLD'
+                )
+                chamfer_obj = bpy.context.active_object
+                chamfer_obj.name = chamfer_cutter_name
+                chamfer_obj.dimensions = (chamfer_cutter_width, chamfer_cutter_width, pin_hole_chamfer_depth)
+                bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply scale
+                apply_boolean(shroud_obj, chamfer_obj)
         else:
             # This case should ideally not be reached if create_base_shroud is robust
             print("Error: Base shroud object does not exist. Cannot apply boolean operations.")
@@ -261,6 +286,9 @@ if shroud_obj: # Proceed only if shroud_obj was successfully created and process
     print(f"Top Surface Thickness (above standard pins if not flipped, or base thickness if flipped): {top_surface_thickness:.2f} mm")
     print(f"Standard Pin Hole Square Width: {standard_pin_hole_square_width:.2f} mm")
     print(f"Jumper Cutout Square Width: {jumper_cutout_square_width:.2f} mm")
+    if enable_pin_hole_opening_chamfer and pin_hole_chamfer_additional_width_per_side > 0 and pin_hole_chamfer_depth > 0:
+        print(f"Pin Hole Opening Chamfer: Enabled (Enlargement per side: {pin_hole_chamfer_additional_width_per_side:.2f} mm, Depth: {pin_hole_chamfer_depth:.2f} mm)")
+
     print(f"Wall Thickness: {wall_thickness:.2f} mm")
     if jumper_pin_coordinates:
         print(f"Jumper access cutouts created for pins (Row Index, Pin Index in Row): {jumper_pin_coordinates}")
