@@ -107,10 +107,14 @@ def create_pin_hole_cutter(is_jumper, location_xy, name):
         width = jumper_cutout_square_width
         loc_z = total_part_height / 2.0 # Centered in the total part height
     else:
-        # Standard pin hole: Square, blind hole (stops before top surface)
+        # Standard pin hole: Square, blind hole from the top surface (Z=total_part_height) downwards.
+        # Hole depth is internal_pin_depth.
+        # Bottom of hole is at Z = total_part_height - internal_pin_depth.
+        # Top of hole is at Z = total_part_height.
         depth = internal_pin_depth
         width = standard_pin_hole_square_width
-        loc_z = internal_pin_depth / 2.0 # Centered in its own depth, base at Z=0
+        # Cutter's center Z:
+        loc_z = total_part_height - (internal_pin_depth / 2.0)
 
     bpy.ops.mesh.primitive_cube_add(
         size=1, # Unit cube
@@ -195,10 +199,14 @@ for r_idx in range(2):  # Corresponds to row_y_offsets[0] and row_y_offsets[1]
                 base_hole_width = jumper_cutout_square_width if is_jumper_pin else standard_pin_hole_square_width
                 chamfer_cutter_width = base_hole_width + (2 * pin_hole_chamfer_additional_width_per_side)
                 
-                # Create the chamfer cutter (a shallow, wider cuboid at the hole opening Z=0)
+                # Chamfer is at the top opening (Z=total_part_height), extending downwards by pin_hole_chamfer_depth.
+                # Chamfer cutter Z range: [total_part_height - pin_hole_chamfer_depth, total_part_height]
+                # Cutter's center Z:
+                chamfer_loc_z = total_part_height - (pin_hole_chamfer_depth / 2.0)
+
                 bpy.ops.mesh.primitive_cube_add(
                     size=1, # Unit cube
-                    location=(pin_center_xy[0], pin_center_xy[1], pin_hole_chamfer_depth / 2.0), # Base at Z=0
+                    location=(pin_center_xy[0], pin_center_xy[1], chamfer_loc_z),
                     enter_editmode=False,
                     align='WORLD'
                 )
@@ -250,30 +258,12 @@ if shroud_obj and remove_middle_material:
     else:
         print(f"Skipping middle material removal: calculated width ({middle_cut_width:.2f}mm) or length ({middle_cut_length:.2f}mm) is too small or negative. Check row_spacing, pin_block_row_length, jumper_cutout_square_width, and middle_channel_jumper_separation.")
 
-# --- Orient model for printing ---
-# The model is built with pin openings at Z=0.
-# It's then flipped so its solid exterior face (original top) is on the print bed (Z=0),
-# and the pin openings (original Z=0 face) are facing upwards (+Z).
+# --- Model Finalization ---
+# The model is built directly in its print orientation:
+# - Solid base (formerly 'top_surface_thickness' part) is at Z=0.
+# - Pin hole openings are on the top face at Z=total_part_height, facing +Z.
 if shroud_obj: # Proceed only if shroud_obj was successfully created and processed
-    print("Orienting model for printing: solid face on print bed (Z=0), pin holes facing +Z.")
-
-    # Ensure the shroud_obj is active for the rotation operation if needed by context
-    bpy.ops.object.select_all(action='DESELECT')
-    shroud_obj.select_set(True)
-    bpy.context.view_layer.objects.active = shroud_obj
-
-    # The object's origin is at (0, 0, total_part_height / 2.0).
-    # Rotating 180 degrees around the X-axis (using its current origin as pivot)
-    # will place its original top face (which was at world Z=total_part_height)
-    # at the world Z=0 plane. Its original bottom face (openings, at world Z=0)
-    # will now be at world Z=total_part_height, facing up.
-    shroud_obj.rotation_euler[0] += math.radians(180) # Add 180 deg to current X rotation
-
-    # Optional: Apply the rotation transform permanently to the mesh data.
-    # This makes the object's rotation (0,0,0) while its mesh is oriented as flipped.
-    # bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-    print(f"Model '{shroud_obj.name}' has been oriented for printing.")
-
+    print(f"Model '{shroud_obj.name}' generated in print orientation.")
     # --- Final Information ---
     print(f"--- {board_config['name']} Shroud Generation Complete ---")
     print(f"Overall Dimensions (LxWxH): {outer_shroud_length:.2f} x {outer_shroud_width:.2f} x {total_part_height:.2f} mm")
