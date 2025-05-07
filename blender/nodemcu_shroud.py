@@ -58,10 +58,6 @@ middle_material_cutout_length_offset = 0.0 # mm, additional length adjustment fo
 
 wall_thickness = 2.0  # mm (general wall thickness around the pin area)
 
-# 3. Printing Orientation Parameter
-# True: Flips the model so its solid exterior face (original top) is on the print bed (Z=0).
-# False: Keeps original orientation (pin opening face on the print bed at Z=0).
-flip_model_for_printing = True
 
 # --- Calculated Dimensions (Derived from Parameters) ---
 internal_pin_depth = pin_actual_exposed_length + pin_depth_clearance
@@ -254,36 +250,35 @@ if shroud_obj and remove_middle_material:
     else:
         print(f"Skipping middle material removal: calculated width ({middle_cut_width:.2f}mm) or length ({middle_cut_length:.2f}mm) is too small or negative. Check row_spacing, pin_block_row_length, jumper_cutout_square_width, and middle_channel_jumper_separation.")
 
-# --- Optional: Flip model for printing ---
+# --- Orient model for printing ---
+# The model is built with pin openings at Z=0.
+# It's then flipped so its solid exterior face (original top) is on the print bed (Z=0),
+# and the pin openings (original Z=0 face) are facing upwards (+Z).
 if shroud_obj: # Proceed only if shroud_obj was successfully created and processed
-    if flip_model_for_printing:
-        print("Flipping model for printing: original solid top will become the new bottom (at Z=0).")
+    print("Orienting model for printing: solid face on print bed (Z=0), pin holes facing +Z.")
 
-        # Ensure the shroud_obj is active for the rotation operation if needed by context
-        bpy.ops.object.select_all(action='DESELECT')
-        shroud_obj.select_set(True)
-        bpy.context.view_layer.objects.active = shroud_obj
+    # Ensure the shroud_obj is active for the rotation operation if needed by context
+    bpy.ops.object.select_all(action='DESELECT')
+    shroud_obj.select_set(True)
+    bpy.context.view_layer.objects.active = shroud_obj
 
-        # The object's origin is at (0, 0, total_part_height / 2.0).
-        # Rotating 180 degrees around the X-axis (using its current origin as pivot)
-        # will place its original top face (which was at world Z=total_part_height)
-        # at the world Z=0 plane. Its original bottom face (openings, at world Z=0)
-        # will now be at world Z=total_part_height, facing up.
-        shroud_obj.rotation_euler[0] += math.radians(180) # Add 180 deg to current X rotation
+    # The object's origin is at (0, 0, total_part_height / 2.0).
+    # Rotating 180 degrees around the X-axis (using its current origin as pivot)
+    # will place its original top face (which was at world Z=total_part_height)
+    # at the world Z=0 plane. Its original bottom face (openings, at world Z=0)
+    # will now be at world Z=total_part_height, facing up.
+    shroud_obj.rotation_euler[0] += math.radians(180) # Add 180 deg to current X rotation
 
-        # Optional: Apply the rotation transform permanently to the mesh data.
-        # This makes the object's rotation (0,0,0) while its mesh is oriented as flipped.
-        # bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
-        
-        print(f"Model '{shroud_obj.name}' has been rotated for printing.")
-    else:
-        print("Model retained original orientation (pin insertion face at Z=0).")
+    # Optional: Apply the rotation transform permanently to the mesh data.
+    # This makes the object's rotation (0,0,0) while its mesh is oriented as flipped.
+    # bpy.ops.object.transform_apply(location=False, rotation=True, scale=False)
+    print(f"Model '{shroud_obj.name}' has been oriented for printing.")
 
     # --- Final Information ---
     print(f"--- {board_config['name']} Shroud Generation Complete ---")
     print(f"Overall Dimensions (LxWxH): {outer_shroud_length:.2f} x {outer_shroud_width:.2f} x {total_part_height:.2f} mm")
     print(f"Internal Pin Depth for Standard Pins: {internal_pin_depth:.2f} mm")
-    print(f"Top Surface Thickness (above standard pins if not flipped, or base thickness if flipped): {top_surface_thickness:.2f} mm")
+    print(f"Base Thickness (solid part on print bed): {top_surface_thickness:.2f} mm")
     print(f"Standard Pin Hole Square Width: {standard_pin_hole_square_width:.2f} mm")
     print(f"Jumper Cutout Square Width: {jumper_cutout_square_width:.2f} mm")
     if enable_pin_hole_opening_chamfer and pin_hole_chamfer_additional_width_per_side > 0 and pin_hole_chamfer_depth > 0:
