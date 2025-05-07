@@ -2,36 +2,52 @@ import bpy
 import math # Added for rotation
 
 # --- Configuration Parameters ---
+# 0. Select Board
+ACTIVE_BOARD_NAME = "NodeMCU_Amica" # Change this to select a different board
 
 # 1. Board Definition
-board_config = {
-    "name": "NodeMCU_Amica",
-    "pins_per_row": 15,
-    "pin_pitch": 2.54,  # mm
-    "row_spacing": 22.86,  # mm (centerline to centerline of the two rows)
-    "pin_length": 6.0,  # mm (length of the metal part of the pin exposed from the PCB)
-    # Pin naming: (Row_Index (0 or 1), Pin_Index_in_Row (0 to 14 from one end))
-    # !!! CRITICAL USER VERIFICATION NEEDED FOR PIN_MAP !!!
-    # This pin_map is an EXAMPLE. You MUST verify it against your specific NodeMCU Amica
-    # board and your chosen orientation/numbering convention.
-    # For instance, if USB is to the left:
-    # Row 0 could be the "top" row (pins 0-14 counted from right-to-left, A0 to VIN).
-    # Row 1 could be the "bottom" row (pins 0-14 counted from right-to-left, D0 to SK2).
-    "pin_map": {
-        # Row 0 (Example: "top" or "left" row, pins 0-14)
-        "A0":    (0, 0), "RSV1":  (0, 1), "RSV2":  (0, 2), "SD3":   (0, 3),
-        "SD2":   (0, 4), "SD1":   (0, 5), "CMD":   (0, 6), "SD0":   (0, 7),
-        "CLK":   (0, 8), "GND1":  (0, 9), "3V3_1": (0, 10),"EN":    (0, 11),
-        "RST":   (0, 12),"GND2":  (0, 13),"VIN":   (0, 14),
-        # Row 1 (Example: "bottom" or "right" row, pins 0-14)
-        "D0":    (1, 0), "D1":    (1, 1), "D2":    (1, 2), "D3":    (1, 3),
-        "D4":    (1, 4), "D5":    (1, 5), "D6":    (1, 6), "D7":    (1, 7),
-        "D8":    (1, 8), "RX":    (1, 9), "TX":    (1, 10),"GND3":  (1, 11),
-        "3V3_2": (1, 12),"SK1":   (1, 13),"SK2":   (1, 14) # SK usually 'डू नॉट कनेक्ट' or special
-    }
+all_board_configs = {
+    "NodeMCU_Amica": {
+        "name": "NodeMCU_Amica", # This can be redundant if key is used, but good for self-documentation
+        "pins_per_row": 15,
+        "pin_pitch": 2.54,  # mm
+        "row_spacing": 22.86,  # mm (centerline to centerline of the two rows)
+        "pin_length": 6.0,  # mm (length of the metal part of the pin exposed from the PCB)
+        # Pin naming: (Row_Index (0 or 1), Pin_Index_in_Row (0 to 14 from one end))
+        # !!! CRITICAL USER VERIFICATION NEEDED FOR PIN_MAP !!!
+        # This pin_map is an EXAMPLE. You MUST verify it against your specific NodeMCU Amica
+        # board and your chosen orientation/numbering convention.
+        # For instance, if USB is to the left:
+        # Row 0 could be the "top" row (pins 0-14 counted from right-to-left, A0 to VIN).
+        # Row 1 could be the "bottom" row (pins 0-14 counted from right-to-left, D0 to SK2).
+        "pin_map": {
+            # Row 0 (Example: "top" or "left" row, pins 0-14)
+            "A0":    (0, 0), "RSV1":  (0, 1), "RSV2":  (0, 2), "SD3":   (0, 3),
+            "SD2":   (0, 4), "SD1":   (0, 5), "CMD":   (0, 6), "SD0":   (0, 7),
+            "CLK":   (0, 8), "GND1":  (0, 9), "3V3_1": (0, 10),"EN":    (0, 11),
+            "RST":   (0, 12),"GND2":  (0, 13),"VIN":   (0, 14),
+            # Row 1 (Example: "bottom" or "right" row, pins 0-14)
+            "D0":    (1, 0), "D1":    (1, 1), "D2":    (1, 2), "D3":    (1, 3),
+            "D4":    (1, 4), "D5":    (1, 5), "D6":    (1, 6), "D7":    (1, 7),
+            "D8":    (1, 8), "RX":    (1, 9), "TX":    (1, 10),"GND3":  (1, 11),
+            "3V3_2": (1, 12),"SK1":   (1, 13),"SK2":   (1, 14) # SK usually 'डू नॉट कनेक्ट' or special
+        }
+    },
+    # Example for another board (you'd fill this in with actual data)
+    # "ESP32_DevKitC": {
+    #     "name": "ESP32_DevKitC",
+    #     "pins_per_row": 19, # Example value
+    #     "pin_pitch": 2.54,
+    #     "row_spacing": 25.4, # Example value
+    #     "pin_length": 5.0,   # Example value
+    #     "pin_map": { /* ... ESP32 specific pin map ... */ }
+    # }
 }
-# To add other boards later, you could make board_config a dictionary of configurations
-# and select one by name.
+
+# Select the active board configuration
+if ACTIVE_BOARD_NAME not in all_board_configs:
+    raise ValueError(f"Board '{ACTIVE_BOARD_NAME}' not found in all_board_configs. Available boards: {list(all_board_configs.keys())}")
+board_config = all_board_configs[ACTIVE_BOARD_NAME]
 
 # 2. Shroud Design Parameters
 pin_depth_clearance = 0.5      # mm (extra depth for pin holes beyond actual pin length)
@@ -59,7 +75,7 @@ middle_material_cutout_length_offset = 0.0 # mm, additional length adjustment fo
 wall_thickness = 2.0  # mm (general wall thickness around the pin area)
 
 
-# --- Calculated Dimensions (Derived from Parameters) ---
+# --- Calculated Dimensions (Derived from Parameters using the selected board_config) ---
 internal_pin_depth = board_config["pin_length"] + pin_depth_clearance
 total_part_height = internal_pin_depth + top_surface_thickness
 
@@ -74,7 +90,7 @@ pin_opening_dimension_for_spacing = standard_pin_hole_square_width
 outer_shroud_width = board_config["row_spacing"] + pin_opening_dimension_for_spacing + (2 * wall_thickness)
 outer_shroud_length = pin_block_row_length + pin_opening_dimension_for_spacing + (2 * wall_thickness)
 
-# --- Helper Functions ---
+# --- Helper Functions (General Purpose) ---
 def clear_scene():
     """Deletes all MESH objects from the current scene."""
     if bpy.ops.object.mode_set.poll(): # Ensure not in Edit Mode
@@ -82,49 +98,6 @@ def clear_scene():
     bpy.ops.object.select_all(action='DESELECT')
     bpy.ops.object.select_by_type(type='MESH')
     bpy.ops.object.delete()
-
-def create_base_shroud(name, length, width, height):
-    """Creates the main rectangular solid for the shroud."""
-    bpy.ops.mesh.primitive_cube_add(
-        size=1, # Unit cube
-        enter_editmode=False,
-        align='WORLD',
-        location=(0, 0, height / 2.0) # Origin at center of height, so base is at Z=0
-    )
-    base_obj = bpy.context.active_object
-    base_obj.name = name
-    base_obj.dimensions = (length, width, height) # Scale the unit cube
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply the scale
-    return base_obj
-
-def create_pin_hole_cutter(is_jumper, location_xy, name):
-    """Creates a cutter object (cube) for a pin hole."""
-    pin_hole_loc_x, pin_hole_loc_y = location_xy
-
-    if is_jumper:
-        # Jumper cutout: Square, goes all the way through the total part height
-        depth = total_part_height
-        width = jumper_cutout_square_width
-        loc_z = total_part_height / 2.0 # Centered in the total part height
-    else:
-        # Standard pin hole: Square, blind hole from the top surface (Z=total_part_height) downwards.
-        # Hole depth is internal_pin_depth.
-        # Bottom of hole is at Z = total_part_height - internal_pin_depth.
-        # Top of hole is at Z = total_part_height.
-        depth = internal_pin_depth
-        width = standard_pin_hole_square_width
-        # Cutter's center Z:
-        loc_z = total_part_height - (internal_pin_depth / 2.0)
-
-    bpy.ops.mesh.primitive_cube_add(
-        size=1, # Unit cube
-        location=(pin_hole_loc_x, pin_hole_loc_y, loc_z)
-    )
-    cutter = bpy.context.active_object
-    cutter.name = name
-    cutter.dimensions = (width, width, depth) # Scale the unit cube
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply the scale
-    return cutter
 
 def apply_boolean(main_object, cutter_object, operation='DIFFERENCE'):
     """Applies a boolean modifier to main_object with cutter_object, then removes cutter."""
@@ -146,6 +119,42 @@ def apply_boolean(main_object, cutter_object, operation='DIFFERENCE'):
         raise # Re-raise the exception to halt script or allow further handling
 
     bpy.data.objects.remove(cutter_object, do_unlink=True) # Clean up the cutter object
+
+# --- Object Creation Functions (using calculated dimensions) ---
+
+def create_base_shroud(name, length, width, height):
+    """Creates the main rectangular solid for the shroud."""
+    bpy.ops.mesh.primitive_cube_add(
+        size=1, # Unit cube
+        enter_editmode=False,
+        align='WORLD',
+        location=(0, 0, height / 2.0) # Origin at center of height, so base is at Z=0
+    )
+    base_obj = bpy.context.active_object
+    base_obj.name = name
+    base_obj.dimensions = (length, width, height) # Scale the unit cube
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply the scale
+    return base_obj
+
+def create_pin_hole_cutter(is_jumper, location_xy, name):
+    """Creates a cutter object (cube) for a pin hole."""
+    pin_hole_loc_x, pin_hole_loc_y = location_xy
+
+    if is_jumper:
+        depth = total_part_height # Jumper cutout: Square, goes all the way through
+        width = jumper_cutout_square_width
+        loc_z = total_part_height / 2.0 # Centered in the total part height
+    else:
+        depth = internal_pin_depth # Standard pin hole: blind hole
+        width = standard_pin_hole_square_width
+        loc_z = total_part_height - (internal_pin_depth / 2.0) # Cutter's center Z
+
+    bpy.ops.mesh.primitive_cube_add(size=1, location=(pin_hole_loc_x, pin_hole_loc_y, loc_z))
+    cutter = bpy.context.active_object
+    cutter.name = name
+    cutter.dimensions = (width, width, depth)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
+    return cutter
 
 # --- Main Script Execution ---
 
