@@ -9,6 +9,7 @@ board_config = {
     "pins_per_row": 15,
     "pin_pitch": 2.54,  # mm
     "row_spacing": 22.86,  # mm (centerline to centerline of the two rows)
+    "pin_length": 6.0,  # mm (length of the metal part of the pin exposed from the PCB)
     # Pin naming: (Row_Index (0 or 1), Pin_Index_in_Row (0 to 14 from one end))
     # !!! CRITICAL USER VERIFICATION NEEDED FOR PIN_MAP !!!
     # This pin_map is an EXAMPLE. You MUST verify it against your specific NodeMCU Amica
@@ -33,7 +34,6 @@ board_config = {
 # and select one by name.
 
 # 2. Shroud Design Parameters
-pin_actual_exposed_length = 6.0  # mm (length of the metal part of the pin)
 pin_depth_clearance = 0.5      # mm (extra depth for pin holes beyond actual pin length)
 top_surface_thickness = 1.5    # mm (thickness of the shroud's solid top, above where standard pins end)
 
@@ -60,7 +60,7 @@ wall_thickness = 2.0  # mm (general wall thickness around the pin area)
 
 
 # --- Calculated Dimensions (Derived from Parameters) ---
-internal_pin_depth = pin_actual_exposed_length + pin_depth_clearance
+internal_pin_depth = board_config["pin_length"] + pin_depth_clearance
 total_part_height = internal_pin_depth + top_surface_thickness
 
 # Overall length of the block of pins in a single row (center of first pin to center of last pin)
