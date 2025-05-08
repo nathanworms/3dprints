@@ -1,5 +1,4 @@
 import bpy
-import math # Added for rotation
 
 # --- Configuration Parameters ---
 # 0. Select Board
@@ -125,15 +124,15 @@ def apply_boolean(main_object, cutter_object, operation='DIFFERENCE'):
 def create_base_shroud(name, length, width, height):
     """Creates the main rectangular solid for the shroud."""
     bpy.ops.mesh.primitive_cube_add(
-        size=1, # Unit cube
+        size=1,
         enter_editmode=False,
         align='WORLD',
         location=(0, 0, height / 2.0) # Origin at center of height, so base is at Z=0
     )
     base_obj = bpy.context.active_object
     base_obj.name = name
-    base_obj.dimensions = (length, width, height) # Scale the unit cube
-    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply the scale
+    base_obj.dimensions = (length, width, height)
+    bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
     return base_obj
 
 def create_pin_hole_cutter(is_jumper, location_xy, name):
@@ -214,7 +213,7 @@ for r_idx in range(2):  # Corresponds to row_y_offsets[0] and row_y_offsets[1]
                 chamfer_loc_z = total_part_height - (pin_hole_chamfer_depth / 2.0)
 
                 bpy.ops.mesh.primitive_cube_add(
-                    size=1, # Unit cube
+                    size=1,
                     location=(pin_center_xy[0], pin_center_xy[1], chamfer_loc_z),
                     enter_editmode=False,
                     align='WORLD'
@@ -222,7 +221,7 @@ for r_idx in range(2):  # Corresponds to row_y_offsets[0] and row_y_offsets[1]
                 chamfer_obj = bpy.context.active_object
                 chamfer_obj.name = chamfer_cutter_name
                 chamfer_obj.dimensions = (chamfer_cutter_width, chamfer_cutter_width, pin_hole_chamfer_depth)
-                bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply scale
+                bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
                 apply_boolean(shroud_obj, chamfer_obj)
         else:
             # This case should ideally not be reached if create_base_shroud is robust
@@ -260,7 +259,7 @@ if shroud_obj and remove_middle_material:
         middle_cutter_obj = bpy.context.active_object
         middle_cutter_obj.name = "MiddleMaterialCutter"
         middle_cutter_obj.dimensions = (middle_cut_length, middle_cut_width, middle_cut_height)
-        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True) # Apply scale
+        bpy.ops.object.transform_apply(location=False, rotation=False, scale=True)
 
         apply_boolean(shroud_obj, middle_cutter_obj) # Default operation is 'DIFFERENCE'
         print("Middle material removed.")
